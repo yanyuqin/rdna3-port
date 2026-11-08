@@ -1,3 +1,11 @@
+> **This repository is `rdna3-port`** — upstream `Niko1221/Strata` main plus the RDNA3 (gfx1100) pieces of
+> [`nicejunjie/Strata-rdna3`](https://github.com/nicejunjie/Strata-rdna3) that upstream does not have:
+> KFD idle-queue parking (`src/core/kfdq.cpp`) and the split-GGUF mode of `tools/nvfp4_local_pack.py slim`.
+> What is ported, what is not, and the four-arm A/B on one RX 7900 XTX: [docs/RDNA3_PORT.md](docs/RDNA3_PORT.md)
+> and [docs/RDNA3_PORT_measurements.md](docs/RDNA3_PORT_measurements.md). Everything below is upstream's README.
+
+---
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="apps/host/public/brand/strata-lockup-dark.svg">
