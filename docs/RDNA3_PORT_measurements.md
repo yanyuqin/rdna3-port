@@ -10,12 +10,15 @@ Prompt: `bench_client.build_prompt` filler text with a fresh nonce per rep (no p
 
 ## 1. Four arms
 
-| arm | binary | env | prefill 8K (t/s) | decode 8K (t/s) | prefill 32K (t/s) | decode 32K (t/s) |
-|---|---|---|---|---|---|---|
-| A | upstream `146df3c4` | none | 697.8 | 77.8 | 765.5 | 74.3 |
-| B | fork `7df6538d` | none | 714.3 | 71.2 | 786.7 | 77.5 |
-| C | upstream `146df3c4` | its 29 RDNA3 flags | 1318.3 | 80.8 | **1614.3** | 85.9 |
-| D | fork `7df6538d` | its 46 flags | 1327.0 | 92.5 | 1584.5 | **95.9** |
+| arm | binary | env | prefill 8K (t/s) | decode 8K (t/s) | prefill 32K (t/s) | decode 32K (t/s) | prefill 128K (t/s) | decode 128K (t/s) |
+|---|---|---|---|---|---|---|---|---|
+| A | upstream `146df3c4` | none | 697.8 | 77.8 | 765.5 | 74.3 | — | — |
+| B | fork `7df6538d` | none | 714.3 | 71.2 | 786.7 | 77.5 | — | — |
+| C | upstream `146df3c4` | its 29 RDNA3 flags | 1318.3 | 80.8 | **1614.3** | 85.9 | **1584.5** | 74.2 |
+| D | fork `7df6538d` | its 46 flags | 1327.0 | 92.5 | 1584.5 | **95.9** | 1531.5 | **84.5** |
+
+The 128K row is 2 reps (76 813-token prompts, 68-72 s each) rather than 3: prefill +3.5% for upstream, decode inside
+the MTP-acceptance band (74.2 vs 84.5 median, per-rep 64.6/83.9 vs 76.1/93.0).
 
 C vs D: prefill −0.7% / +1.9% (noise), decode −14%. The fork's 46 env vars were filtered against upstream's
 `STRATA_*` namespace: 29 exist upstream, 17 do not —
