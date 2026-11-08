@@ -95,7 +95,35 @@ describe (`DP_EARLY_REFILL` NaN, `hipMemcpy2D` silent corruption) does not appea
 
 Artifacts: `~/eval100-kit/results/{eval100_port16,eval100_up16,polyglot100_port7,ruler_port16}.jsonl`.
 
-## 5. Reproduce
+## 5. Against the earlier runs on this card (2026-11-04 / 11-05)
+
+Those runs used `~/bench/cfg-1100-dflash2-s4.json` (16 K context, `--kv-resident 32768`, expert cache 9615 slots /
+17.73 GiB) and `~/bench/run_1100.sh`, which starts `serve.server` **without sourcing any env file**. Checked on the live
+8093 process on 2026-11-08: `/proc/<pid>/environ` holds 17 variables and none matching `STRATA_*`, so every RDNA3 switch
+was off. (The dual-MI50 engine on 8000 does carry three, `STRATA_GFX906_ATTN_QUERY_SWIZZLE=1`,
+`STRATA_GFX906_ATTN_REDUCE12=1`, `STRATA_MMQ_KQ=1`, from the 2026-11-02 gfx906 A/B; those are gfx906-only.)
+
+| run | context | expert cache | prompt | prefill | decode |
+|---|---|---|---|---|---|
+| 11-04, DFlash2 spec 4, no env | 16 K | 9615 slots / 17.73 GiB | 512 | 314.9 | 80.9 |
+| same | 16 K | same | 7 620 | 742.7 | **99.1** |
+| same | 16 K | same | 11 200 | 735.4 | 86.3 |
+| 11-05, both engines concurrent | 256 K | 7175 / 13.62 GiB | 68 123 | ≈725 (700–730) | — |
+| A, upstream defaults | 256 K | 7175 / 13.62 GiB | 6 588 | 697.8 | 77.8 |
+| A | 256 K | same | 26 035 | 765.5 | 74.3 |
+| C, 29 flags | 256 K | same | 26 035 | 1614.3 | 85.9 |
+| C | 256 K | same | 76 813 | **1584.5** | 74.2 |
+
+1. Arm A reproduces the card as it was measured before: 697.8 / 765.5 at 6.6 K / 26 K against 742.7 at 7.6 K and ≈725 at
+   68 K with no flags. The earlier numbers were the flag-off baseline, not a different build's speed.
+2. The cleanest prefill pair is the 68 K one: ≈725 before against 1584.5 after with flags on, **2.18x**.
+3. Decode is not comparable across those rows. The 11-04 config ran 16 K with 9615 expert slots; every arm here runs
+   256 K with 7175 slots. That is why 99.1 becomes 95.9 / 85.9 — the cache shrank, not the port. The fork's +14% is
+   measured inside one 256 K configuration, which is the only apples-to-apples decode pair in this document.
+4. The eval100 number from 2026-11-06 (54.46 tok/s decode, thinking off, 256-token answers) is a latency-bound short
+   workload and does not belong in these rows.
+
+## 6. Reproduce
 
 ```sh
 # binaries
