@@ -937,6 +937,15 @@ if(STRATA_ENABLE_CUDA OR STRATA_ENABLE_HIP)
   strata_utf8_manifest(strata)
   target_include_directories(strata PRIVATE ${_strata_gpu_include_directories})
   target_link_libraries(strata PRIVATE strata_engine strata_prefill strata_spec ${_strata_gpu_runtime_target})
+  # rdna3-port (piece 4): src/core/kfdq.cpp parks ROCr's idle utility queue through KFD, so a card holding 9
+  # queues (GPU_MAX_HW_QUEUES=8) idles at ~5-13 W instead of staying 100% busy at ~95 W. The executable exports
+  # ioctl() so ROCr's KFD calls pass through the recorder (STRATA_KFDQ=0 turns it off, STRATA_KFDQ_LOG=1 logs).
+  # Ported from nicejunjie/Strata-rdna3 (e2151f1b); Linux + HIP only, no behaviour change while submitting work.
+  if(STRATA_ENABLE_HIP AND NOT WIN32)
+    target_sources(strata PRIVATE src/core/kfdq.cpp)
+    target_link_options(strata PRIVATE "LINKER:--export-dynamic-symbol=ioctl")
+    target_link_libraries(strata PRIVATE ${CMAKE_DL_LIBS})
+  endif()
   if(WIN32 AND STRATA_ENABLE_HIP)
     # 0.2.1.2: the ROCm math libraries live in <package>\rocm\bin, which is on PATH only when the launcher starts the engine; load them on first
     # use (main() adds that folder to the DLL search first) so `strata.exe --version` works from the package folder.  amdhip64_7.dll and the
