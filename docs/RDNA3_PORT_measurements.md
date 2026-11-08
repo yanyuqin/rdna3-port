@@ -123,7 +123,28 @@ was off. (The dual-MI50 engine on 8000 does carry three, `STRATA_GFX906_ATTN_QUE
 4. The eval100 number from 2026-11-06 (54.46 tok/s decode, thinking off, 256-token answers) is a latency-bound short
    workload and does not belong in these rows.
 
-## 6. Reproduce
+## 7. Production config on 8093 (switched 2026-11-08)
+
+`~/bench/cfg-fork-prod.json` is the old production config (`cfg-ud31-0211-iq3-256k.json`) with `exe` pointed at the
+fork build and `--draft-fallback` dropped, because the fork's 0.2.8 tree never had that flag. `~/bench/prod-rdna3.env`
+is the fork's 46 variables with `@STRATA@` expanded to `/home/yanyq/port/fork`. Launcher: `~/bench/run_prod.sh [port]`,
+same `taskset -c 8-15,24-31`, `--host 0.0.0.0`, and the same `tls_proxy.py` on 9443 that fronts 8093 since before.
+
+Verified before switching, on port 8096:
+
+| check | result |
+|---|---|
+| expert cache | 7 388 experts / 14.03 GiB (more than the 7 175 in the A/B arms, which shared the card with another instance) |
+| retrieval probe, 8 K prompt, 3 codes in order | **3/3 PASS**, exact codes, thinking off |
+| 26 035-token prompt, 3 reps | **1576.6 t/s prefill** (`pp`), 93.8 t/s decode (79.1 / 93.8 / 99.9) |
+
+Against arm D (1584.5 / 95.9) that is within noise, so the production path is the measured one. After switching, `/v1/models`
+answers over both `http://127.0.0.1:8093` and `https://127.0.0.1:9443`, and a chat completion over TLS returns normally.
+45 `STRATA_*` variables are visible in the engine's `/proc/<pid>/environ`.
+
+Rollback is the old script: `~/port/restore_8093.sh` starts upstream `cfg-ud31-0211-iq3-256k.json` with no env.
+
+## 8. Reproduce
 
 ```sh
 # binaries
