@@ -2,11 +2,11 @@
 # run_prod_0214.sh [port] [affinity]
 # Production launcher for the RX 7900 XTX on the upstream v0.2.14.1 tree with the rdna3-port patches
 # (branch rdna3-port-v0214: kfdq power parking, the gfx1100 build and this launcher), on the tuned b9 line.
-#   port 8094 (default) -> 0.0.0.0:8094, TLS 9444 via tls_proxy.py
+#   port 8093 (default) -> 0.0.0.0:8093, TLS 9443 via tls_proxy.py -- the production port clients already use
 #   any other port      -> test instance, no TLS helper touched
 # Only the RX 7900 XTX is visible to HIP (UUID, not an index), so the two MI50s stay idle.
 set -u
-PORT=${1:-8094}
+PORT=${1:-8093}
 AFF=${2:-8-15,24-31}
 REPO=${REPO:-/home/yanyq/port/up0214}
 CFG=${CFG:-$REPO/scripts/rdna3/cfg-prod-0214.json}
@@ -14,9 +14,9 @@ ENVF=${ENVF:-$REPO/scripts/rdna3/prod-0214.env}
 EXE=${EXE:-$REPO/build-1100-mv/strata}
 SRVROOT=${SRVROOT:-$REPO}
 TOK=${TOK:-/data480/models/strata-pack-ud31-iq3xxs/tokenizer}
-SLOG=${SLOG:-/home/yanyq/bench/serve-prod-0214.log}
+SLOG=${SLOG:-/home/yanyq/bench/serve-prod.log}
 ELOG=${ELOG:-/home/yanyq/port/logs/engine-prod-0214.log}
-TLS_PORT=${TLS_PORT:-9444}
+TLS_PORT=${TLS_PORT:-9443}
 
 unset HSA_OVERRIDE_GFX_VERSION ROCR_VISIBLE_DEVICES
 export HIP_VISIBLE_DEVICES=${VIS_7900XTX:-GPU-b8626a2a8e10f3cc}
@@ -51,10 +51,10 @@ for i in $(seq 1 120); do
 done
 grep -E "^ready:|expert cache" "$SLOG" "$ELOG" 2>/dev/null | head -3
 
-if [ "$PORT" = "8094" ]; then
+if [ "$PORT" = "8093" ]; then
   if ! ss -ltn 2>/dev/null | grep -q ":$TLS_PORT "; then
     setsid nohup /home/yanyq/venv-strata/bin/python /home/yanyq/bench/tls_proxy.py \
-      --listen "$TLS_PORT" --target 127.0.0.1:8094 \
+      --listen "$TLS_PORT" --target 127.0.0.1:8093 \
       --cert /home/yanyq/bench/tls/cert.pem --key /home/yanyq/bench/tls/key.pem \
       < /dev/null > "/home/yanyq/bench/tls-$TLS_PORT.log" 2>&1 &
     sleep 2
