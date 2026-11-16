@@ -100,3 +100,73 @@ Two conflicts in total: `CMakeLists.txt` (resolved by keeping the split layout a
 kfdq hook into `cmake/strata_gpu_engine.cmake`) and nothing else — `kfdq.cpp` applies as a clean
 addition, `slim` auto-merges, the scripts are plain additions. A future upstream bump should cost
 the same unless the CMake layout moves again.
+## v0.2.14.1 (2026-11-16) — the same four pieces, moved up one release
+
+| | commit | date |
+|---|---|---|
+| upstream release | `3af562d5` (tag `v0.2.14.1`) | 2026-11-16 |
+| previous base | `628f7495` (tag `v0.2.13.1`) | 2026-11-09 |
+| commits between them | **1 780** (2 262 files, +661 166 / −112 114) | |
+| branch head | `rdna3-port-v0214` = `3af562d5` + the four port commits | |
+
+Upstream still carries **no KFD code** (`git grep -n AMDKFD v0.2.14.1 -- src include` is empty) and
+still does not mention `nicejunjie` anywhere in its history, so `kfdq.cpp` remains fork-only work.
+The four commits replayed in order:
+
+1. `rdna3-port: park ROCr's idle utility queue through KFD` — one conflict only, in
+   `tools/nvfp4_local_pack.py`: 0.2.14 replaced `_paths.add_gguf_py()` with `_paths.gguf_lib()`.
+   Resolution keeps the port's multi-shard `slim` body and takes the module from `gguf_lib()`;
+   `--gguf` had already auto-merged to `action="append"`. `src/core/kfdq.cpp` and the nine-line
+   `cmake/strata_gpu_engine.cmake` hook applied untouched.
+2. `build: default to the vendored third_party/strata-ggml` — clean.
+3. `scripts: the gfx1100 build, the launcher, the probe and the runners` — clean additions.
+4. `docs: the branch on v0.2.13.1` — README hunk auto-merged.
+
+Total upgrade cost: **one conflict**, same class as the 0.2.13 bump. A future bump should cost the
+same unless `_paths` or the CMake layout moves again.
+
+### Build
+
+`B1_build_0214.sh` (the project's hip-compile preset, `-DCMAKE_HIP_ARCHITECTURES=gfx1100`,
+`/opt/rocm715-merged`, `-DSTRATA_ENABLE_HIP=ON -DSTRATA_ENABLE_CUDA=OFF`): 161 edges, 0 errors,
+39 783 032 B, `strata 0.1.60.1`, `git describe` = `v0.2.14.1-4-g218b86c0`. `kfdq` is in the
+binary (`strata.dir/src/core/kfdq.cpp.o`, 31 symbols, `ioctl` exported dynamic).
+
+### Measurements, 2026-11-16 — the tuned b9 line, one session
+
+RX 7900 XTX alone (`HIP_VISIBLE_DEVICES=GPU-b8626a2a8e10f3cc`, no `HSA_OVERRIDE_GFX_VERSION`),
+`taskset -c 8-15,24-31`, `UD3.1-UD-IQ3_XXS` + `strata-pack-ud31-iq3xxs`, 262 144 context, `--kv int8`,
+dflash2 spec 6 + MTP, `--prefill 32768`, `STRATA_PREFILL_CPU_SHARE=0.6` / `_MAX=65536`,
+`--pcie-frac 0.55` (the 42-argument line of `~/bench/cfg-a0214-mv.json` + the 28 flags of
+`~/port/env-up-v0214-mv.sh`).
+
+| | merged tree (`rdna3-port-v0214`) | plain `v0.2.14.1` | delta |
+|---|---|---|---|
+| 21 K prompt (17 840 tok) prefill | **2900.2 t/s** (2856/2900/2906) | 2867.4 t/s | +1.1% |
+| 21 K TTFT | **6.151 s** | 6.22 s | −1.1% |
+| 21 K decode | 106.6 t/s (94.6/107.2/106.6) | inside the run band | noise |
+| 5.3 K prompt (4 610 tok) prefill | 2088.7 t/s | — | — |
+| 5.3 K decode | 113.1 t/s | — | — |
+
+Ready in 26 s, 24 010 MiB VRAM, expert cache **8 631 slots / 16.40 GiB**, 0 non-finite, 38 °C.
+The decode spread in the 21 K arm (94.6 first rep, then 107) is the MTP acceptance band, not a
+regression; the first rep pays for the cold cache.
+
+KFD parking stays inert on this line: `GPU_MAX_HW_QUEUES=6` opens 6 compute queues plus ROCr's
+utility queue = 7, under gfx1100's 8 slots, so `kfdq` never has a card to park and the engine
+logs no `kfdq` line. It becomes live again only with `GPU_MAX_HW_QUEUES=8` (9 queues), which is
+what the fork's production line used.
+
+### Production port moved
+
+The fork's production instance held **8093** with the HTTPS front end on **9443**. This tree now
+serves on **8094** with TLS on **9444** (`scripts/rdna3/run_prod_0214.sh`), so the two stacks can
+be compared or run side by side instead of one replacing the other in place:
+
+```sh
+bash ~/port/up0214/scripts/rdna3/run_prod_0214.sh          # 0.0.0.0:8094, TLS 9444 -> 127.0.0.1:8094
+bash ~/port/up0214/scripts/rdna3/run_prod_0214.sh 8097     # any other port: test instance, no TLS helper
+```
+
+The launcher binds HIP to the card by UUID, keeps `HSA_OVERRIDE_GFX_VERSION` unset, pins the CPU
+set and reads the tuned env, so the two MI50s stay at their idle baseline.
