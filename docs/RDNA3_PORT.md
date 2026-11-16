@@ -157,14 +157,14 @@ utility queue = 7, under gfx1100's 8 slots, so `kfdq` never has a card to park a
 logs no `kfdq` line. It becomes live again only with `GPU_MAX_HW_QUEUES=8` (9 queues), which is
 what the fork's production line used.
 
-### Production port moved
+### Production port unchanged
 
-The fork's production instance held **8093** with the HTTPS front end on **9443**. This tree now
-serves on **8094** with TLS on **9444** (`scripts/rdna3/run_prod_0214.sh`), so the two stacks can
-be compared or run side by side instead of one replacing the other in place:
+The fork's production instance held **8093** with the HTTPS front end on **9443**, and this tree
+takes over the same pair: the port a client already points at does not move, and the front end is
+restarted on the old TLS port. Stopping the old instance is the whole cut-over.
 
 ```sh
-bash ~/port/up0214/scripts/rdna3/run_prod_0214.sh          # 0.0.0.0:8094, TLS 9444 -> 127.0.0.1:8094
+bash ~/port/up0214/scripts/rdna3/run_prod_0214.sh          # 0.0.0.0:8093, TLS 9443 -> 127.0.0.1:8093
 bash ~/port/up0214/scripts/rdna3/run_prod_0214.sh 8097     # any other port: test instance, no TLS helper
 ```
 
