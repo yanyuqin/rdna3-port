@@ -8,7 +8,7 @@
 <h3 align="center">Run powerful AI on your own computer.</h3>
 <p align="center">Chat, code and work with images, locally.</p>
 
-> **This tree is the `rdna3-port` branch**: v0.2.13.1 plus the RDNA3 (gfx1100) pieces of
+> **This tree is the `rdna3-port-v0214` branch**: v0.2.14.1 plus the RDNA3 (gfx1100) pieces of
 > `nicejunjie/Strata-rdna3` — KFD idle queue parking and a multi-shard `slim`. Speed is
 > unchanged against stock upstream; see [docs/RDNA3_PORT.md](docs/RDNA3_PORT.md).
 
