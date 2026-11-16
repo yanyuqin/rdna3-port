@@ -8,10 +8,11 @@
 set -u
 PORT=${1:-8094}
 AFF=${2:-8-15,24-31}
-CFG=${CFG:-/home/yanyq/bench/cfg-a0214-mv.json}
-ENVF=${ENVF:-/home/yanyq/port/env-up-v0214-mv.sh}
-EXE=${EXE:-/home/yanyq/port/up0214/build-1100-mv/strata}
-SRVROOT=${SRVROOT:-/home/yanyq/port/up0214}
+REPO=${REPO:-/home/yanyq/port/up0214}
+CFG=${CFG:-$REPO/scripts/rdna3/cfg-prod-0214.json}
+ENVF=${ENVF:-$REPO/scripts/rdna3/prod-0214.env}
+EXE=${EXE:-$REPO/build-1100-mv/strata}
+SRVROOT=${SRVROOT:-$REPO}
 TOK=${TOK:-/data480/models/strata-pack-ud31-iq3xxs/tokenizer}
 SLOG=${SLOG:-/home/yanyq/bench/serve-prod-0214.log}
 ELOG=${ELOG:-/home/yanyq/port/logs/engine-prod-0214.log}
